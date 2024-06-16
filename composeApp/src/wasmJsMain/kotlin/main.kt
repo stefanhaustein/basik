@@ -1,3 +1,5 @@
+package org.kobjects.basik.app
+
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import kotlinx.browser.document

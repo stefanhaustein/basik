@@ -12,7 +12,6 @@ plugins {
 }
 
 kotlin {
-    /* TODO: Fix in Parsek and re-enable
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         moduleName = "composeApp"
@@ -29,7 +28,6 @@ kotlin {
         }
         binaries.executable()
     }
-    */
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {

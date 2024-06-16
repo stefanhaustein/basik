@@ -28,8 +28,7 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     // linuxX64() TODO
-
-    /*
+    
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         //     moduleName = "konsole"
@@ -45,12 +44,12 @@ kotlin {
                    }*/
         }
     }
-     */
+
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.kobjects.parsek:core:0.8.0")
+                implementation("org.kobjects.parsek:core:0.8.1")
             }
         }
         val commonTest by getting {

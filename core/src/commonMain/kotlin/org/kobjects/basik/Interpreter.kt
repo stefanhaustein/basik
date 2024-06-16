@@ -304,11 +304,15 @@ class Interpreter(
     }
 
     suspend fun runShell() {
-        printFn("BASIC Interpreter")
+        printFn("""Try '10 print "Hello World"'
+            |Then type 'run' to execute the program.
+            |To "load" an existing program, paste it into the command line""".trimMargin())
         while (true) {
             val s = readFn("READY.")
             try {
-                processInputLine(s)
+                for (line in s.split("\n")) {
+                    processInputLine(line)
+                }
             } catch (e: Exception) {
                 printFn(e.toString())
             }

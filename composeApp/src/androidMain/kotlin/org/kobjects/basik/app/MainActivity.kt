@@ -1,4 +1,4 @@
-package org.kobjects.basik
+package org.kobjects.basik.app
 
 import App
 import android.os.Bundle
