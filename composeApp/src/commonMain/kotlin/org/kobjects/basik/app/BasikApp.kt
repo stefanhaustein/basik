@@ -25,7 +25,7 @@ import org.kobjects.konsole.compose.RenderKonsole
 
 @Composable
 @Preview
-fun App() {
+fun BasikApp() {
     val konsole = remember { ComposeKonsole() }
     val interpreter = remember { Interpreter( { konsole.println(it) }, { konsole.readln(it) }) }
 
