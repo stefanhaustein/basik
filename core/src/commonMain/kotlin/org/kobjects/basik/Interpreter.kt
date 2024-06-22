@@ -172,7 +172,7 @@ class Interpreter(
             val loopVariable = entry.forVariable!!
             val current = loopVariable.evalDouble(this) + entry.step
             loopVariable.set(this, Literal(current))
-            if (signum(entry.step) !== signum(current.compareTo(entry.end))) {
+            if (signum(entry.step) != signum(current.compareTo(entry.end))) {
                 stack.add(entry)
                 currentLineIndex = entry.lineIndex
                 currentStatementIndex = entry.statementIndex + 1

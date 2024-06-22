@@ -1,5 +1,6 @@
 package org.kobjects.basik
 
+import kotlinx.coroutines.delay
 import org.kobjects.basik.expressions.Evaluable
 import org.kobjects.basik.expressions.Settable
 
@@ -51,7 +52,10 @@ class Statement(
             Kind.NEW -> interpreter.new()
             Kind.NEXT -> interpreter.next(params)
             Kind.ON -> interpreter.on(params, delimiters[0] == " GOSUB ")
-            Kind.PRINT -> interpreter.print(params, delimiters)
+            Kind.PRINT -> {
+                delay(50)
+                interpreter.print(params, delimiters)
+            }
             Kind.READ -> interpreter.read(params)
             Kind.REM -> {}
             Kind.RESTORE -> interpreter.restore(if (params.isEmpty()) null else params[0].evalInt(interpreter))

@@ -1,5 +1,7 @@
 package org.kobjects.basik
 
+import kotlinx.coroutines.yield
+
 class Line(
     val number: Int,
     val statements: List<Statement>
@@ -16,6 +18,8 @@ class Line(
             }
             if (interpreter.currentStatementIndex == index) {
                 interpreter.currentStatementIndex++
+            } else {
+                yield()
             }
         }
         interpreter.currentStatementIndex = 0

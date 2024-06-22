@@ -50,6 +50,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("org.kobjects.parsek:core:0.8.1")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         val commonTest by getting {

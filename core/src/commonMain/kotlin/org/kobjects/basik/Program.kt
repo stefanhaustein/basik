@@ -1,5 +1,7 @@
 package org.kobjects.basik
 
+import kotlinx.coroutines.yield
+
 class Program {
     val lines = mutableListOf<Line>()
 
@@ -11,6 +13,7 @@ class Program {
             if (lineIndex == interpreter.currentLineIndex) {
                 interpreter.currentLineIndex++
             }
+            yield()
         }
     }
 
