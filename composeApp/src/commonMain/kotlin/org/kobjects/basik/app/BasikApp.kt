@@ -11,6 +11,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,7 +39,7 @@ fun BasikApp() {
                         IconButton(
                             onClick = { interpreter.stop() }
                         ) {
-                            Icon(Icons.Default.Close, "Stop" )
+                            Icon(Icons.Filled.Stop, "Stop" )
                         }
                     }
                 )

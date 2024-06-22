@@ -62,6 +62,7 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.materialIconsExtended)
             implementation("org.kobjects.konsole:core:0.8.0")
             implementation("org.kobjects.konsole:compose:0.8.0")
             implementation(project(":core"))
