@@ -21,13 +21,11 @@ class Interpreter(
 
     var trace = false
     var pendingOutput = ""
-    var currentStatementIndex = 0
-    var currentLineIndex = 0
-    var nextSubIndex = 0
+    var nextStatementIndex = 0
 
     var currentTabPos = 0
-    var stoppedAt: Pair<Int, Int>? = null
-    var dataPosition = IntArray(3)
+    var stoppedAt: Int? = null
+    var dataPosition = IntArray(2)
     var dataStatement: Statement? = null
 
     fun clear() {
@@ -39,8 +37,7 @@ class Interpreter(
         val stoppedAt = stoppedAt ?:
             throw IllegalStateException("Not stopped.")
 
-        currentLineIndex = stoppedAt.first
-        currentStatementIndex = stoppedAt.second
+        nextStatementIndex = stoppedAt
     }
 
     fun defFn(assignment: Evaluable) {
@@ -59,43 +56,38 @@ class Interpreter(
         val end = params[2].evalDouble(this)
         val step = if (params.size > 3) params[3].evalDouble(this) else 1.0
         if (signum(step) == signum(current.compareTo(end))) {
-            val nextPosition = IntArray(3)
+            val nextPosition = IntArray(1)
             if (program.find(
                     Statement.Kind.NEXT,
                     params[0].toString(),
                     nextPosition) == null) {
                 throw RuntimeException("FOR without NEXT")
             }
-            currentLineIndex = nextPosition[0]
-            currentStatementIndex = nextPosition[1]
-            nextSubIndex = nextPosition[2] + 1
+            nextStatementIndex = nextPosition[0] + 1
         } else {
-            val entry: StackEntry = StackEntry(
-                currentLineIndex,
-                currentStatementIndex,
+            stack.add(StackEntry(
+                nextStatementIndex,
                 loopVar,
                 step = step,
                 end = end
-            )
-            stack.add(entry)
+            ))
         }
     }
 
     fun gosub(lineNumber: Int) {
-        stack.add(StackEntry(currentLineIndex, currentStatementIndex))
+        stack.add(StackEntry(nextStatementIndex))
         goto(lineNumber)
     }
 
     fun goto(lineNumber: Int) {
-        currentLineIndex = program.indexOf(lineNumber)
-        currentStatementIndex = 0
+        nextStatementIndex = program.indexOf(lineNumber)
     }
 
-    fun ifStatement(condition: Boolean, elseGoto: Evaluable?) {
+    fun ifStatement(condition: Boolean, goto: Evaluable?, elseGoto: Int) {
         if (!condition) {
-            currentStatementIndex = Int.MAX_VALUE
-        } else if (elseGoto != null) {
-            goto(elseGoto.evalInt(this))
+            goto(elseGoto)
+        } else if (goto != null) {
+            goto(goto.evalInt(this))
         }
     }
 
@@ -133,7 +125,7 @@ class Interpreter(
     }
 
     fun listCommand() {
-        for (line in program.lines) {
+        for (line in program.statements) {
             printFn(line.toString())
         }
     }
@@ -151,35 +143,29 @@ class Interpreter(
         clear()
         restore(null)
         stack.clear()
-        program.lines.clear()
+        program.statements.clear()
     }
 
     fun next(params: Array<out Evaluable>) {
-        for (i in nextSubIndex until max(params.size, 1)) {
-            val name: String? = if (params.isEmpty()) null else params[i].toString()
-            var entry: StackEntry
-            while (true) {
-                if (stack.isEmpty()
-                    || stack.get(stack.size - 1).forVariable == null
-                ) {
-                    throw IllegalStateException("NEXT $name without FOR.")
-                }
-                entry = stack.removeAt(stack.size - 1)
-                if (name == null || entry.forVariable?.name == name) {
-                    break
-                }
+        val name: String? = if (params.isEmpty()) null else params[0].toString()
+        var entry: StackEntry
+        while (true) {
+            if (stack.isEmpty() || stack.get(stack.size - 1).forVariable == null) {
+                throw IllegalStateException("NEXT $name without FOR.")
+            }
+            entry = stack.removeAt(stack.size - 1)
+            if (name == null || entry.forVariable?.name == name) {
+                break
             }
             val loopVariable = entry.forVariable!!
             val current = loopVariable.evalDouble(this) + entry.step
             loopVariable.set(this, Literal(current))
             if (signum(entry.step) != signum(current.compareTo(entry.end))) {
                 stack.add(entry)
-                currentLineIndex = entry.lineIndex
-                currentStatementIndex = entry.statementIndex + 1
+                nextStatementIndex = entry.statementIndex
                 break
             }
         }
-        nextSubIndex = 0
     }
 
 
@@ -233,20 +219,20 @@ class Interpreter(
             TokenType.EOF -> false
             TokenType.NUMBER -> {
                 val lineNumber = tokenizer.consume().text.toInt()
-                if (tokenizer.current.type === TokenType.EOF) {
-                    program.setLine(lineNumber, null)
-                } else {
-                    program.setLine(lineNumber, Parser.parseStatementList(tokenizer, this, lineNumber))
-                }
+                program.setLine(lineNumber, if (tokenizer.current.type === TokenType.EOF) listOf() else  Parser.parseStatementList(tokenizer, this, lineNumber))
                 false
             }
             else -> {
-                val line = Line(-2, Parser.parseStatementList(tokenizer, this, -2))
-                currentStatementIndex = 0
-                currentLineIndex = -1
-                line.eval(this)
-                if (currentLineIndex != -1) {
-                    program.eval(this)
+                val line = Parser.parseStatementList(tokenizer, this, -2)
+                nextStatementIndex = -1
+                for (statement in line) {
+                    statement.eval(this)
+                    if (nextStatementIndex != -1) {
+                        program.eval(this)
+                        if (nextStatementIndex != -1) {
+                            break;
+                        }
+                    }
                 }
                 true
             }
@@ -257,11 +243,11 @@ class Interpreter(
     fun read(params: Array<out Evaluable>) {
         for (child in params) {
             while (dataStatement == null
-                || dataPosition.get(2) >= dataStatement!!.params.size
+                || dataPosition[1] >= dataStatement!!.params.size
             ) {
-                dataPosition[2] = 0
+                dataPosition[1] = 0
                 if (dataStatement != null) {
-                    dataPosition[1]++
+                    dataPosition[0]++
                 }
                 dataStatement = program.find(
                     Statement.Kind.DATA,
@@ -272,7 +258,7 @@ class Interpreter(
                     throw IllegalStateException("Out of data.")
                 }
             }
-            (child as Settable).set(this, dataStatement!!.params[dataPosition[2]++].eval(this))
+            (child as Settable).set(this, dataStatement!!.params[dataPosition[1]++].eval(this))
         }
     }
 
@@ -288,8 +274,7 @@ class Interpreter(
         while (!stack.isEmpty()) {
             val entry = stack.removeLast()
             if (entry.forVariable == null) {
-                currentLineIndex = entry.lineIndex
-                currentStatementIndex = entry.statementIndex + 1
+                nextStatementIndex = entry.statementIndex
                 return
             }
         }
@@ -298,8 +283,7 @@ class Interpreter(
 
     suspend fun runCommand() {
         clear()
-        currentLineIndex = 0
-        currentStatementIndex = 0
+        nextStatementIndex = 0
         program.eval(this)
     }
 
@@ -320,7 +304,7 @@ class Interpreter(
     }
 
     fun stop() {
-        stoppedAt = currentLineIndex to currentStatementIndex
+        stoppedAt = nextStatementIndex
         goto(Int.MAX_VALUE)
     }
 

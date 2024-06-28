@@ -5,7 +5,19 @@ import org.kobjects.basik.expressions.*
 object Parser {
 
 
-    fun parseStatement(tokenizer: Tokenizer, interpreter: Interpreter, lineNumber: Int, index: Int): Statement {
+    fun parseStatement(tokenizer: Tokenizer, interpreter: Interpreter, lineNumber: Int, result: MutableList<Statement>): Boolean {
+
+        fun addStatement(kind: Statement.Kind, vararg params: Evaluable, delimiters: List<String> = emptyList()) {
+            result.add(Statement(lineNumber, result.size, kind, *params, delimiters = delimiters))
+        }
+
+        while (tokenizer.tryConsume(":")) {
+            addStatement(Statement.Kind.EMPTY)
+        }
+        if (tokenizer.current.type == TokenType.EOF) {
+            return false
+        }
+
         var name = tokenizer.current.text
         if (tokenizer.tryConsume("GO", ignoreCase = true)) {  // GO TO, GO SUB -> GOTO, GOSUB
             name += tokenizer.current.text
@@ -24,33 +36,28 @@ object Parser {
         } else {
             tokenizer.consume()
         }
-        return when (type) {
+        when (type) {
             Statement.Kind.RUN,
             Statement.Kind.RESTORE -> {
                 if (tokenizer.current.type != TokenType.EOF &&
                     tokenizer.current.text != ":"
-                ) {
-                    Statement(lineNumber, index, type, ExpressionParser.parseExpression(tokenizer, interpreter))
-                } else Statement(lineNumber, index, type)
+                ) addStatement(type, ExpressionParser.parseExpression(tokenizer, interpreter))
+                else addStatement(type)
             }
             Statement.Kind.DEF,
             Statement.Kind.GOTO,
             Statement.Kind.GOSUB,
-            Statement.Kind.LOAD -> Statement(
-                lineNumber,
-                index,
+            Statement.Kind.LOAD -> addStatement(
                 type,
                 ExpressionParser.parseExpression(tokenizer, interpreter))
             Statement.Kind.NEXT -> {
-                val vars = mutableListOf<Evaluable>()
-                if (tokenizer.current.type != TokenType.EOF &&
-                    tokenizer.current.text != ":"
-                ) {
+                if (tokenizer.current.type == TokenType.EOF || tokenizer.current.text == ":") {
+                    addStatement(type)
+                } else {
                     do {
-                        vars.add(ExpressionParser.parseExpression(tokenizer, interpreter))
+                        addStatement(type, ExpressionParser.parseExpression(tokenizer, interpreter))
                     } while (tokenizer.tryConsume(","))
                 }
-                Statement(lineNumber, index, type, *vars.toTypedArray())
             }
             Statement.Kind.DATA,
             Statement.Kind.DIM,
@@ -59,7 +66,7 @@ object Parser {
                 do {
                     expressions.add(ExpressionParser.parseExpression(tokenizer, interpreter))
                 } while (tokenizer.tryConsume(","))
-                Statement(lineNumber, index, type, *expressions.toTypedArray())
+                addStatement(type, *expressions.toTypedArray())
             }
             Statement.Kind.FOR -> {
                 val assignment = ExpressionParser.parseExpression(tokenizer, interpreter)
@@ -70,9 +77,7 @@ object Parser {
                 tokenizer.consume( "TO")
                 val end = ExpressionParser.parseExpression(tokenizer, interpreter)
                 if (tokenizer.tryConsume( "STEP", ignoreCase = true)) {
-                    Statement(
-                        lineNumber,
-                        index,
+                    addStatement(
                         type,
                         assignment.param[0],
                         assignment.param[1],
@@ -80,9 +85,7 @@ object Parser {
                         ExpressionParser.parseExpression(tokenizer, interpreter),
                         delimiters = listOf(" = ", " TO ", " STEP ")
                     )
-                } else Statement(
-                    lineNumber,
-                    index,
+                } else addStatement(
                     type,
                     assignment.param[0],
                     assignment.param[1],
@@ -95,18 +98,16 @@ object Parser {
                 if (!tokenizer.tryConsume( "THEN", ignoreCase = true) && !tokenizer.tryConsume( "GOTO", ignoreCase = true)) {
                     throw tokenizer.exception("'THEN expected after IF-condition.'")
                 }
+                addStatement(type, condition, delimiters = listOf(" THEN"))
                 if (tokenizer.current.type === TokenType.NUMBER) {
                     val target = tokenizer.consume().text.toDouble()
-                    return Statement(
-                        lineNumber,
-                        index,
-                        type,
-                        condition,
-                        Literal(target),
-                        delimiters = listOf(" THEN ")
+                    addStatement(
+                        Statement.Kind.GOTO,
+                        Literal(target)
                     )
+                } else {
+                    return true
                 }
-                Statement(lineNumber, index, type, condition, delimiters = listOf(" THEN"))
             }
             Statement.Kind.INPUT,
             Statement.Kind.PRINT -> {
@@ -124,10 +125,7 @@ object Parser {
                         args.add(ExpressionParser.parseExpression(tokenizer, interpreter))
                     }
                 }
-                Statement(lineNumber, index, type,
-                    *args.toTypedArray(),
-                    delimiters = delimiter
-                )
+                addStatement(type, *args.toTypedArray(), delimiters = delimiter)
             }
             Statement.Kind.LET -> {
                 val assignment = ExpressionParser.parseExpression(tokenizer, interpreter)
@@ -138,7 +136,7 @@ object Parser {
                         "Unrecognized statement or illegal assignment: '$assignment'.")
 
                 }
-                Statement(lineNumber, index, type, *assignment.param, delimiters = listOf(" = "))
+                addStatement(type, *assignment.param, delimiters = listOf(" = "))
             }
             Statement.Kind.ON -> {
                 val expressions = mutableListOf<Evaluable>()
@@ -154,7 +152,7 @@ object Parser {
                 do {
                     expressions.add(ExpressionParser.parseExpression(tokenizer, interpreter))
                 } while (tokenizer.tryConsume(","))
-                Statement(lineNumber, index, type, *expressions.toTypedArray(), delimiters = listOf(kind))
+                addStatement(type, *expressions.toTypedArray(), delimiters = listOf(kind))
             }
             Statement.Kind.REM -> {
                 val sb = StringBuilder()
@@ -166,31 +164,21 @@ object Parser {
                 if (sb.isNotEmpty() && sb[0] == ' ') {
                     sb.deleteAt(0)
                 }
-                Statement(lineNumber, index, type, Variable(sb.toString()))
+                addStatement(type, Variable(sb.toString()))
             }
-            else -> Statement(lineNumber, index, type)
+            else -> addStatement(type)
         }
+        return tokenizer.tryConsume(":")
     }
 
     fun parseStatementList(tokenizer: Tokenizer, interpreter: Interpreter, lineNumber: Int): List<Statement> {
         val result = mutableListOf<Statement>()
-        var statement: Statement
-        var index = 0
-        do {
-            while (tokenizer.tryConsume(":")) {
-                result.add(Statement(lineNumber, index++, Statement.Kind.EMPTY))
-            }
-            if (tokenizer.current.type == TokenType.EOF) {
-                break
-            }
-            statement = parseStatement(tokenizer, interpreter, lineNumber, index++)
-            result.add(statement)
-        } while (if (statement.kind === Statement.Kind.IF) statement.params.size == 1
-            else tokenizer.tryConsume(":")
-        )
+
+        while (parseStatement(tokenizer, interpreter, lineNumber, result))
+
         if (tokenizer.current.type !== TokenType.EOF) {
             throw tokenizer.exception("Leftover input.")
         }
-        return result
+        return result.toList()
     }
 }
