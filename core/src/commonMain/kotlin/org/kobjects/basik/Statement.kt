@@ -5,6 +5,8 @@ import org.kobjects.basik.expressions.Evaluable
 import org.kobjects.basik.expressions.Settable
 
 class Statement(
+    val lineNumber: Int,
+    val index: Int,
     val kind: Kind,
     vararg val params: Evaluable,
     val delimiters: List<String> = emptyList(),

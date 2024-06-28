@@ -236,12 +236,12 @@ class Interpreter(
                 if (tokenizer.current.type === TokenType.EOF) {
                     program.setLine(lineNumber, null)
                 } else {
-                    program.setLine(lineNumber, Parser.parseStatementList(tokenizer, this))
+                    program.setLine(lineNumber, Parser.parseStatementList(tokenizer, this, lineNumber))
                 }
                 false
             }
             else -> {
-                val line = Line(-2, Parser.parseStatementList(tokenizer, this))
+                val line = Line(-2, Parser.parseStatementList(tokenizer, this, -2))
                 currentStatementIndex = 0
                 currentLineIndex = -1
                 line.eval(this)
