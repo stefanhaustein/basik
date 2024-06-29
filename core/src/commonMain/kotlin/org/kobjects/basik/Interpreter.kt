@@ -1,6 +1,7 @@
 package org.kobjects.basik
 
 import org.kobjects.basik.expressions.*
+import kotlin.random.Random
 
 
 class Interpreter(
@@ -29,6 +30,7 @@ class Interpreter(
     var stoppedAt: Int? = null
     var dataPosition = IntArray(2)
     var dataStatement: Statement? = null
+    var seeds = mutableMapOf<Int, Random>()
 
     fun clear() {
         variables.clear()
@@ -238,6 +240,9 @@ class Interpreter(
             }
         }
     }
+
+    override fun random(seed: Int): Double =
+        seeds.getOrPut(seed) { Random(seed) }.nextDouble()
 
 
     fun read(params: Array<out Evaluable>) {

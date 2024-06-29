@@ -32,7 +32,9 @@ class Statement(
     suspend fun eval(interpreter: Interpreter) {
         interpreter.currentStatement = this
         if (interpreter.trace && lineNumber >= 0) {
-            interpreter.printFn("$lineNumber : $index : $this")
+            val trace = "$lineNumber : $index : $this"
+            interpreter.printFn(trace)
+            println(trace)
         }
         when (kind) {
             Kind.CLEAR -> interpreter.clear()

@@ -111,7 +111,7 @@ class Builtin(val kind: Kind, vararg val param: Evaluable) : Evaluable {
             val count = if (param.size > 1)  param[1].evalInt(ctx) else 1
             s.substring(max(0, s.length - count))
         }
-        Kind.RND -> if (param.size == 1) Random(param[0].evalInt(ctx)).nextDouble() else Random.nextDouble()
+        Kind.RND -> if (param.size == 1) ctx.random(param[0].evalInt(ctx)) else Random.nextDouble()
         Kind.SIN -> sin(param[0].evalDouble(ctx))
         Kind.SGN -> {
             val v = param[0].evalDouble(ctx)
@@ -148,4 +148,6 @@ class Builtin(val kind: Kind, vararg val param: Evaluable) : Evaluable {
         require(param.size == kind.parameterCount
                 || param.size >= kind.minParameterCount) { "Parameter count mismatch." }
     }
+
+
 }

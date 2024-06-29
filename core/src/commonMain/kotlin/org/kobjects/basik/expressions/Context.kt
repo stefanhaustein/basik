@@ -7,4 +7,6 @@ package org.kobjects.basik.expressions
 interface Context {
     // The array index corresponds to the number of parameters.
     val variables: MutableList<MutableMap<String, Any>>
+
+    fun random(seed: Int): Double
 }
