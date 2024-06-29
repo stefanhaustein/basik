@@ -30,6 +30,7 @@ class Statement(
     }
 
     suspend fun eval(interpreter: Interpreter) {
+        interpreter.currentStatement = this
         if (interpreter.trace && lineNumber >= 0) {
             interpreter.printFn("$lineNumber : $index : $this")
         }
@@ -47,8 +48,8 @@ class Statement(
             Kind.GOSUB -> interpreter.gosub(params[0].evalInt(interpreter))
             Kind.IF -> interpreter.ifStatement(params[0].evalBoolean(interpreter), if (params.size == 2) params[1] else null, lineNumber + 1)
             Kind.INPUT -> interpreter.input(params, delimiters)
-            Kind.LET -> (params[0] as Settable).set(interpreter, params[1])
-            Kind.LIST -> interpreter.listCommand()
+            Kind.LET -> (params[0] as Settable).set(interpreter, params[1].eval(interpreter))
+            Kind.LIST -> interpreter.printFn(interpreter.program.toString())
             Kind.LOAD -> interpreter.load(params[0].evalString(interpreter))
             Kind.NEW -> interpreter.new()
             Kind.NEXT -> interpreter.next(params)
@@ -70,7 +71,7 @@ class Statement(
     }
 
     override fun toString(): String {
-        val sb = StringBuilder(" ")
+        val sb = StringBuilder()
         sb.append(kind.name)
         if (params.isNotEmpty()) {
             sb.append(' ')

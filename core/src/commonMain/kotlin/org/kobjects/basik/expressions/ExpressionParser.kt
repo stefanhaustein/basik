@@ -1,13 +1,9 @@
 package org.kobjects.basik.expressions
 
-
 import org.kobjects.parsek.expressionparser.ConfigurableExpressionParser
 
-/**
- * Tailored towards the BASIC interpreter
- */
-object ExpressionParser : ConfigurableExpressionParser<Tokenizer, Context, Evaluable>(
-    { scanner, context -> ExpressionParser.parsePrimary(scanner, context) },
+object ExpressionParser : ConfigurableExpressionParser<BasicTokenizer, Unit, Evaluable>(
+    { scanner, _ -> ExpressionParser.parsePrimary(scanner) },
     prefix(Builtin.Kind.NEG.precedence, "+") { _, _, _, operand -> operand },
     prefix(Builtin.Kind.NEG.precedence,  "-") { _, _, _, operand -> Builtin(Builtin.Kind.NEG, operand) },
     infix(Builtin.Kind.POW.precedence, "^") { _, _, _, left, right ->
@@ -24,9 +20,8 @@ object ExpressionParser : ConfigurableExpressionParser<Tokenizer, Context, Evalu
         Builtin(Builtin.Kind.OR, left, right) },
     prefix(Builtin.Kind.NOT.precedence, "NOT", "Not", "not") { _, _, _, operand ->
         Builtin(Builtin.Kind.NOT, operand) }
-
 ) {
-    private fun parsePrimary(tokenizer: Tokenizer, context: Context): Evaluable =
+    private fun parsePrimary(tokenizer: BasicTokenizer): Evaluable =
         when (tokenizer.current.type) {
             TokenType.NUMBER ->
                 Literal(tokenizer.consume().text.toDouble())
@@ -44,17 +39,19 @@ object ExpressionParser : ConfigurableExpressionParser<Tokenizer, Context, Evalu
                 }
 
                 if (tokenizer.tryConsume("(")) {
-                    val params = parseParameterList(tokenizer, context, ")")
-                    context.resolveFunction(name, params)!!
+                    val params = parseParameterList(tokenizer, ")")
+                    val builtin = Builtin.Kind.values().firstOrNull { it.toString().equals(name, ignoreCase = true) }
+                    if (builtin == null) Parameterized(name, params)
+                    else Builtin(builtin, *params.toTypedArray<Evaluable>())
                 } else {
-                    context.resolveVariable(name)
+                    Variable(name.lowercase())
                 }
             }
             TokenType.SYMBOL -> {
                 if (!tokenizer.tryConsume("(")) {
                     throw tokenizer.exception("Unrecognized primary expression.")
                 }
-                val expr = parseExpression(tokenizer, context)
+                val expr = parseExpression(tokenizer)
                 tokenizer.consume(")")
                 Builtin(Builtin.Kind.EMPTY, expr)
             }
@@ -63,14 +60,16 @@ object ExpressionParser : ConfigurableExpressionParser<Tokenizer, Context, Evalu
     }
 
 
-    fun parseParameterList(tokenizer: Tokenizer, context: Context, endToken: String): List<Evaluable> {
+    fun parseParameterList(tokenizer: BasicTokenizer, endToken: String): List<Evaluable> {
         val parameters = mutableListOf<Evaluable>()
         if (tokenizer.current.text != endToken) {
                 do {
-                    parameters.add(parseExpression(tokenizer, context))
+                    parameters.add(parseExpression(tokenizer, Unit))
                 } while (tokenizer.tryConsume(","))
             }
             tokenizer.consume(endToken)
         return parameters
     }
+
+    fun parseExpression(tokenizer: BasicTokenizer): Evaluable = parseExpression(tokenizer, Unit)
 }

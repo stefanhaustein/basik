@@ -1,14 +1,14 @@
 package org.kobjects.basik.expressions
 
 class Variable(
-    val name: String,
+    override val name: String,
 ) : Evaluable, Settable {
 
     override fun eval(ctx: Context) =
-        ctx.variables.getOrElse(name) { if (name.endsWith("$")) "" else 0.0 }
+        ctx.variables[0][name] ?: if (name.endsWith("$")) "" else 0.0
 
     override fun set(ctx: Context, value: Any) {
-        ctx.variables[name] = value
+        ctx.variables[0][name] = value
     }
 
     override fun toString() = name

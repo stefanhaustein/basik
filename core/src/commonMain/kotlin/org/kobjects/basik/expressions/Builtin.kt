@@ -60,10 +60,11 @@ class Builtin(val kind: Kind, vararg val param: Evaluable) : Evaluable {
 
     override fun precedence() = kind.precedence
 
-    private fun compare(context: Context, predicate: (Int) -> Boolean) =
-        if (predicate((param[0].eval(context) as Comparable<Any>).compareTo(
-                param[1].eval(context) as Comparable<Any>))) 1 else 0
-
+    private fun compare(context: Context, predicate: (Int) -> Boolean): Double {
+        val left = param[0].eval(context)
+        val right = param[1].eval(context)
+        return if (predicate((left as Comparable<Any>).compareTo(right))) 1.0 else 0.0
+    }
 
     override fun eval(ctx: Context) = when(kind) {
         Kind.ABS -> abs(param[0].evalDouble(ctx))

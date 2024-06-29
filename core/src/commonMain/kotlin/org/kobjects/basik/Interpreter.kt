@@ -1,7 +1,6 @@
 package org.kobjects.basik
 
 import org.kobjects.basik.expressions.*
-import kotlin.math.max
 
 
 class Interpreter(
@@ -14,7 +13,9 @@ class Interpreter(
     },
     val loadFn: suspend (name: String) -> String = { throw UnsupportedOperationException() },
     val saveFn: suspend (name: String, content: String) -> Unit = { _, _ -> throw UnsupportedOperationException() },
-) : Context() {
+) : Context {
+    override val variables = mutableListOf<MutableMap<String, Any>>(mutableMapOf())
+
     val program = Program()
 
     val stack = mutableListOf<StackEntry>()
@@ -22,6 +23,7 @@ class Interpreter(
     var trace = false
     var pendingOutput = ""
     var nextStatementIndex = 0
+    var currentStatement = Statement(-1, -1, Statement.Kind.END)
 
     var currentTabPos = 0
     var stoppedAt: Int? = null
@@ -29,8 +31,8 @@ class Interpreter(
     var dataStatement: Statement? = null
 
     fun clear() {
-        parameterized.clear()
         variables.clear()
+        variables.add(mutableMapOf())
     }
 
     fun continueCommand() {
@@ -51,7 +53,7 @@ class Interpreter(
 
     fun forStatement(params: Array<out Evaluable>) {
         val loopVar = params[0] as Variable
-        loopVar.set(this, params[1])
+        loopVar.set(this, params[1].evalDouble(this))
         val current = loopVar.evalDouble(this)
         val end = params[2].evalDouble(this)
         val step = if (params.size > 3) params[3].evalDouble(this) else 1.0
@@ -104,16 +106,20 @@ class Interpreter(
                 }
                 val variable = child as Settable
                 var value: Any
+                if (label.isNotBlank()) {
+                    printFn(label.toString())
+                }
+                val numeric = !variable.name.endsWith("$")
                 while (true) {
-                    value = readFn(label.toString())
-                    if (variable.toString().endsWith("$")) {
+                    value = readFn(if (numeric) "Please enter a number" else "Please enter text")
+                    if (!numeric) {
                         break
                     }
                     try {
                         value = value.toDouble()
                         break
                     } catch (e: NumberFormatException) {
-                        print("Not a number. Please enter a number: ")
+                        printFn("Not a number. Please enter a number.")
                     }
                 }
                 label.clear()
@@ -121,12 +127,6 @@ class Interpreter(
             } else {
                 label.append(child.eval(this))
             }
-        }
-    }
-
-    fun listCommand() {
-        for (line in program.statements) {
-            printFn(line.toString())
         }
     }
 
@@ -159,7 +159,7 @@ class Interpreter(
             }
             val loopVariable = entry.forVariable!!
             val current = loopVariable.evalDouble(this) + entry.step
-            loopVariable.set(this, Literal(current))
+            loopVariable.set(this, current)
             if (signum(entry.step) != signum(current.compareTo(entry.end))) {
                 stack.add(entry)
                 nextStatementIndex = entry.statementIndex
@@ -214,7 +214,7 @@ class Interpreter(
     }
 
     suspend fun processInputLine(line: String): Boolean {
-        val tokenizer = Tokenizer(line)
+        val tokenizer = BasicTokenizer(line)
         return when (tokenizer.current.type) {
             TokenType.EOF -> false
             TokenType.NUMBER -> {
@@ -298,7 +298,8 @@ class Interpreter(
                     processInputLine(line)
                 }
             } catch (e: Exception) {
-                printFn(e.toString())
+                e.printStackTrace()
+                printFn("Error in line ${currentStatement.lineNumber}, statement '$currentStatement': $e")
             }
         }
     }
@@ -312,11 +313,8 @@ class Interpreter(
         saveFn(fileName, program.toString())
     }
 
-
     companion object {
-
         fun signum(value: Double): Int = if (value < 0.0) -1 else if (value > 0.0) 1 else 0
         fun signum(value: Int): Int = if (value < 0) -1 else if (value > 0) 1 else 0
-
     }
 }

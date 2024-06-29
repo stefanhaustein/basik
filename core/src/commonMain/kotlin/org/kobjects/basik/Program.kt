@@ -50,4 +50,25 @@ class Program {
         return null
     }
 
+    override fun toString(): String {
+        var currentLine = -1
+        var wasIf = false
+        val sb = StringBuilder()
+        for (statement in statements) {
+            if (statement.lineNumber != currentLine) {
+                currentLine = statement.lineNumber
+                if (!sb.isEmpty()) {
+                    sb.append("\n")
+                }
+                sb.append(statement.lineNumber).append(' ')
+            } else if (!wasIf) {
+                sb.append(" : ")
+            }
+            sb.append(statement)
+            wasIf = statement.kind == Statement.Kind.IF
+        }
+        sb.append('\n')
+        return sb.toString()
+    }
+
 }

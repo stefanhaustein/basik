@@ -1,18 +1,19 @@
 package org.kobjects.basik.expressions
 
-class Call(
-    val name: String,
+/** Array access or function call */
+class Parameterized (
+    override val name: String,
     val parameters: List<Evaluable>,
 ): Evaluable, Settable {
     val defaultValue: Any
         get() = if (name.endsWith("$")) "" else 0.0
 
     override fun eval(ctx: Context): Any {
-        if (parameters.size > ctx.parameterized.size) {
+        if (parameters.size > ctx.variables.size) {
             return defaultValue
         }
 
-        val rootValue = ctx.parameterized[parameters.size].getOrElse(name) {
+        val rootValue = ctx.variables[parameters.size].getOrElse(name) {
             return defaultValue
         }
 
@@ -34,16 +35,16 @@ class Call(
     }
 
     override fun set(ctx: Context, value: Any) {
-         while (parameters.size >= ctx.parameterized.size) {
-            ctx.parameterized.add(mutableMapOf())
+         while (parameters.size >= ctx.variables.size) {
+            ctx.variables.add(mutableMapOf())
         }
 
         if (value is FunctionDefinition) {
-            ctx.parameterized[parameters.size][name] = value
+            ctx.variables[parameters.size][name] = value
             return
         }
 
-        var currentMap = ctx.parameterized[parameters.size].getOrPut(name) {
+        var currentMap = ctx.variables[parameters.size].getOrPut(name) {
             mutableMapOf<Int, Any>()
         } as MutableMap<Int, Any>
 
@@ -57,5 +58,5 @@ class Call(
         currentMap[parameters.last().evalInt(ctx)] = value
     }
 
-    override fun toString() = name + "(" + parameters.joinToString(", ") + ")"
+    override fun toString() = "$name(${parameters.joinToString(", ")})"
 }

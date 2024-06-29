@@ -11,7 +11,7 @@ interface Evaluable {
         return if (value is Number) value.toDouble()
         else if (value is Boolean) {
             if (value) 1.0 else 0.0
-        } else throw IllegalArgumentException("Number expected; got: 'value'")
+        } else throw IllegalArgumentException("Number expected; got: '$value'")
     }
 
     fun evalInt(context: Context): Int = (eval(context) as Number).toInt()
