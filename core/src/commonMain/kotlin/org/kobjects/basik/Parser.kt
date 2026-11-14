@@ -19,7 +19,7 @@ object Parser {
         }
 
         var name = tokenizer.current.text
-        if (tokenizer.tryConsume("GO", ignoreCase = true)) {  // GO TO, GO SUB -> GOTO, GOSUB
+        if (tokenizer.tryConsumeIgnoreCase("GO")) {  // GO TO, GO SUB -> GOTO, GOSUB
             name += tokenizer.current.text
         } else if (name == "?") {
             name = "PRINT"
@@ -74,9 +74,9 @@ object Parser {
                     assignment.param[0] !is Variable) {
                     throw tokenizer.exception("Variable assignment expected after FOR")
                 }
-                tokenizer.consume( "TO")
+                tokenizer.consume("TO")
                 val end = ExpressionParser.parseExpression(tokenizer)
-                if (tokenizer.tryConsume( "STEP", ignoreCase = true)) {
+                if (tokenizer.tryConsumeIgnoreCase("STEP")) {
                     addStatement(
                         type,
                         assignment.param[0],
@@ -95,7 +95,7 @@ object Parser {
             }
             Statement.Kind.IF -> {
                 val condition = ExpressionParser.parseExpression(tokenizer)
-                if (!tokenizer.tryConsume( "THEN", ignoreCase = true) && !tokenizer.tryConsume( "GOTO", ignoreCase = true)) {
+                if (!tokenizer.tryConsumeIgnoreCase("THEN") && !tokenizer.tryConsumeIgnoreCase("GOTO")) {
                     throw tokenizer.exception("'THEN expected after IF-condition.'")
                 }
                 addStatement(type, condition, delimiters = listOf(" THEN "))
@@ -139,9 +139,9 @@ object Parser {
                 val expressions = mutableListOf<Evaluable>()
                 expressions.add(ExpressionParser.parseExpression(tokenizer))
                 var kind: String
-                if (tokenizer.tryConsume("GOTO", ignoreCase = true)) {
+                if (tokenizer.tryConsumeIgnoreCase("GOTO")) {
                     kind = " GOTO "
-                } else if (tokenizer.tryConsume( "GOSUB", ignoreCase = true)) {
+                } else if (tokenizer.tryConsumeIgnoreCase("GOSUB")) {
                     kind = " GOSUB "
                 } else {
                     throw tokenizer.exception("GOTO or GOSUB expected.")

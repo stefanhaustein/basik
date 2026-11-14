@@ -25,6 +25,11 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        mavenLocal {
+            content {
+                includeGroup("org.kobjects.parsek")
+            }
+        }
     }
 }
 

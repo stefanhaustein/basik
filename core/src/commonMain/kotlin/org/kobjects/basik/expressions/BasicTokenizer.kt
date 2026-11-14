@@ -1,23 +1,20 @@
 package org.kobjects.basik.expressions
 
-import org.kobjects.parsek.tokenizer.Lexer
 import org.kobjects.parsek.tokenizer.RegularExpressions
 import org.kobjects.parsek.tokenizer.Scanner
 
 class BasicTokenizer(input: String) : Scanner<TokenType>(
-    Lexer(
-        input,
-        RegularExpressions.WHITESPACE to { null },
-        RegularExpressions.NUMBER to { TokenType.NUMBER },
-        CSV_STRING to { TokenType.STRING },
-        RegularExpressions.IDENTIFIER to { TokenType.IDENTIFIER },
-        SYMBOL to { TokenType.SYMBOL },
-        ),
-    TokenType.EOF) {
+    input,
+    TokenType.EOF,
+    RegularExpressions.WHITESPACE to null,
+    RegularExpressions.UNSIGNED_NUMBER to TokenType.NUMBER,
+    RegularExpressions.CSV_STRING to TokenType.STRING,
+    RegularExpressions.IDENTIFIER to TokenType.IDENTIFIER,
+    SYMBOL to TokenType.SYMBOL,
+) {
 
     companion object {
         val SYMBOL = Regex("\\+|-|\\*|%|<=|>=|==|=|<>|<|>|\\^|!=|!|\\(|\\)|,|\\?|;|~|\\[|]|\\{|\\}|/|:")
-        val CSV_STRING = Regex(""""([^"]*(""[^"]*)*)"""")
     }
 
 }

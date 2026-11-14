@@ -14,9 +14,9 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 import kotlinx.coroutines.launch
 import org.kobjects.konsole.compose.ComposeKonsole

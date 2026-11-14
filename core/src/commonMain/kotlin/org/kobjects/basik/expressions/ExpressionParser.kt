@@ -1,25 +1,33 @@
 package org.kobjects.basik.expressions
 
-import org.kobjects.parsek.expressionparser.ConfigurableExpressionParser
+import org.kobjects.parsek.expression.Operator
+import org.kobjects.parsek.expression.PrattParser
 
-object ExpressionParser : ConfigurableExpressionParser<BasicTokenizer, Unit, Evaluable>(
-    { scanner, _ -> ExpressionParser.parsePrimary(scanner) },
-    prefix(Builtin.Kind.NEG.precedence, "+") { _, _, _, operand -> operand },
-    prefix(Builtin.Kind.NEG.precedence,  "-") { _, _, _, operand -> Builtin(Builtin.Kind.NEG, operand) },
-    infix(Builtin.Kind.POW.precedence, "^") { _, _, _, left, right ->
-        Builtin(Builtin.Kind.POW, left, right) },
-    infix(Builtin.Kind.MUL.precedence, "*", "/") { _, _, name, left, right ->
-        Builtin(name, left, right) },
-    infix(Builtin.Kind.ADD.precedence, "+", "-") { _, _, name, left, right ->
-        Builtin(name, left, right) },
-    infix(Builtin.Kind.EQ.precedence, "=", "<", "<=", "<>", ">", ">=") { _, _, name, left, right ->
-        Builtin(name, left, right) },
-    infix(Builtin.Kind.AND.precedence, "AND", "And", "and") { _, _, _, left, right ->
-        Builtin(Builtin.Kind.AND, left, right) },
-    infix(Builtin.Kind.OR.precedence, "OR", "Or", "or") { _, _, _, left, right ->
-        Builtin(Builtin.Kind.OR, left, right) },
-    prefix(Builtin.Kind.NOT.precedence, "NOT", "Not", "not") { _, _, _, operand ->
-        Builtin(Builtin.Kind.NOT, operand) }
+object ExpressionParser : PrattParser<BasicTokenizer, Unit, Evaluable>(
+    parsePrimary = { scanner, _ -> ExpressionParser.parsePrimary(scanner) },
+    buildUnary = { _, _, name, operand ->
+        when (name.uppercase()) {
+            "+" -> operand
+            "-" -> Builtin(Builtin.Kind.NEG, operand)
+            "NOT" -> Builtin(Builtin.Kind.NOT, operand)
+            else -> throw IllegalArgumentException("Unrecognized unary operator: '$name'")
+        }
+    },
+    buildBinary = { _, _, name, left, right ->
+        when (name.uppercase()) {
+            "AND" -> Builtin(Builtin.Kind.AND, left, right)
+            "OR" -> Builtin(Builtin.Kind.OR, left, right)
+            else -> Builtin(name, left, right)
+        }
+    },
+    Operator.Prefix(Builtin.Kind.NEG.precedence, "+", "-"),
+    Operator.Infix(Builtin.Kind.POW.precedence, "^"),
+    Operator.Infix(Builtin.Kind.MUL.precedence, "*", "/"),
+    Operator.Infix(Builtin.Kind.ADD.precedence, "+", "-"),
+    Operator.Infix(Builtin.Kind.EQ.precedence, "=", "<", "<=", "<>", ">", ">="),
+    Operator.Infix(Builtin.Kind.AND.precedence, "AND", "And", "and"),
+    Operator.Infix(Builtin.Kind.OR.precedence, "OR", "Or", "or"),
+    Operator.Prefix(Builtin.Kind.NOT.precedence, "NOT", "Not", "not"),
 ) {
     private fun parsePrimary(tokenizer: BasicTokenizer): Evaluable =
         when (tokenizer.current.type) {
@@ -63,11 +71,11 @@ object ExpressionParser : ConfigurableExpressionParser<BasicTokenizer, Unit, Eva
     fun parseParameterList(tokenizer: BasicTokenizer, endToken: String): List<Evaluable> {
         val parameters = mutableListOf<Evaluable>()
         if (tokenizer.current.text != endToken) {
-                do {
-                    parameters.add(parseExpression(tokenizer, Unit))
-                } while (tokenizer.tryConsume(","))
-            }
-            tokenizer.consume(endToken)
+            do {
+                parameters.add(parseExpression(tokenizer, Unit))
+            } while (tokenizer.tryConsume(","))
+        }
+        tokenizer.consume(endToken)
         return parameters
     }
 

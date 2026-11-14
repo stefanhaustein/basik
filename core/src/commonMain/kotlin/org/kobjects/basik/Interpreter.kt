@@ -221,7 +221,7 @@ class Interpreter(
             TokenType.EOF -> false
             TokenType.NUMBER -> {
                 val lineNumber = tokenizer.consume().text.toInt()
-                program.setLine(lineNumber, if (tokenizer.current.type === TokenType.EOF) listOf() else  Parser.parseStatementList(tokenizer, this, lineNumber))
+                program.setLine(lineNumber, if (tokenizer.current.type === TokenType.EOF) listOf() else Parser.parseStatementList(tokenizer, this, lineNumber))
                 false
             }
             else -> {
