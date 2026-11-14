@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -13,6 +14,7 @@ tasks.withType<JavaExec> {
 
 kotlin {
     applyDefaultHierarchyTemplate()
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
     jvm().mainRun {
         mainClass = "org.kobjects.basik.MainKt"
     }

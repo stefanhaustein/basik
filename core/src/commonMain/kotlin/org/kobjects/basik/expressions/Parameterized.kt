@@ -5,11 +5,13 @@ class Parameterized (
     override val name: String,
     val parameters: List<Evaluable>,
 ): Evaluable, Settable {
+    private class ArrayDimension(val entries: MutableMap<Int, Any> = mutableMapOf())
+
     val defaultValue: Any
         get() = if (name.endsWith("$")) "" else 0.0
 
     override fun eval(ctx: Context): Any {
-        if (parameters.size > ctx.variables.size) {
+        if (parameters.size >= ctx.variables.size) {
             return defaultValue
         }
 
@@ -21,15 +23,15 @@ class Parameterized (
            return rootValue.eval(ctx, parameters)
         }
 
-        var currentMap = rootValue as Map<Int, Any>
+        var currentDimension = rootValue as ArrayDimension
 
         for (i in 0 until parameters.size - 1) {
-            currentMap = currentMap.getOrElse(parameters[i].evalInt(ctx)) {
+            currentDimension = currentDimension.entries.getOrElse(parameters[i].evalInt(ctx)) {
                 return defaultValue
-            } as MutableMap<Int, Any>
+            } as ArrayDimension
         }
 
-        return currentMap.getOrElse(parameters.last().evalInt(ctx)) {
+        return currentDimension.entries.getOrElse(parameters.last().evalInt(ctx)) {
             defaultValue
         }
     }
@@ -44,18 +46,18 @@ class Parameterized (
             return
         }
 
-        var currentMap = ctx.variables[parameters.size].getOrPut(name) {
-            mutableMapOf<Int, Any>()
-        } as MutableMap<Int, Any>
+        var currentDimension = ctx.variables[parameters.size].getOrPut(name) {
+            ArrayDimension()
+        } as ArrayDimension
 
 
-        for (i in 0 until  parameters.size - 1) {
-            currentMap = currentMap.getOrPut(parameters[i].evalInt(ctx)) {
-                mutableMapOf<Int, Any>()
-            } as MutableMap<Int, Any>
+        for (i in 0 until parameters.size - 1) {
+            currentDimension = currentDimension.entries.getOrPut(parameters[i].evalInt(ctx)) {
+                ArrayDimension()
+            } as ArrayDimension
         }
 
-        currentMap[parameters.last().evalInt(ctx)] = value
+        currentDimension.entries[parameters.last().evalInt(ctx)] = value
     }
 
     override fun toString() = "$name(${parameters.joinToString(", ")})"

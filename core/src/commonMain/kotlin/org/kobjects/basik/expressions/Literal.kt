@@ -6,6 +6,6 @@ class Literal(val value: Any) : Evaluable {
 
     override fun toString() =
         if (value is String) "\"" + value.replace("\"", "\"\"") + "\""
-        else if (value is Double && value.toLong() == value) value.toLong().toString()
+        else if (value is Double && value.toLong().toDouble() == value) value.toLong().toString()
         else value.toString()
 }

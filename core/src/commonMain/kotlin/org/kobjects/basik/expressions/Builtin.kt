@@ -63,7 +63,12 @@ class Builtin(val kind: Kind, vararg val param: Evaluable) : Evaluable {
     private fun compare(context: Context, predicate: (Int) -> Boolean): Double {
         val left = param[0].eval(context)
         val right = param[1].eval(context)
-        return if (predicate((left as Comparable<Any>).compareTo(right))) 1.0 else 0.0
+        val cmp = when {
+            left is Number && right is Number -> left.toDouble().compareTo(right.toDouble())
+            left is String && right is String -> left.compareTo(right)
+            else -> throw IllegalArgumentException("Cannot compare $left and $right")
+        }
+        return if (predicate(cmp)) 1.0 else 0.0
     }
 
     override fun eval(ctx: Context) = when(kind) {
